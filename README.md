@@ -115,27 +115,46 @@ graph LR
   O["Outcome"] -->|generates/funds| Y
 ```
 
-Forward attribution (structural influence):
-
 ```mermaid
 graph LR
-  subgraph "Forward Attribution (Structural)"
-    A1["Agent A"] -->|creates| R1["Artifact"]
-    A2["Agent B"] -->|contributes| R1
-    R1 -->|depends| R2["Artifact"]
-    R2 -->|generates| O1["Outcome"]
-  end
-```
-
-Reverse attribution (credit propagation from outcomes):
-
-```mermaid
-graph LR
-  subgraph "Reverse Attribution (Credit)"
-    O1["Outcome"] -->|credits| R2["Artifact"]
-    R2 -->|credits| A1["Agent A"]
-    R2 -->|credits| A2["Agent B"]
-  end
+    subgraph "Forward Attribution<br/>(Structural Importance)"
+        AF1["Agent A"]
+        AF2["Agent B"]
+        ARF["Artifact"]
+        OF["Outcome"]
+        
+        AF1 -->|creates| ARF
+        AF2 -->|contributes| ARF
+        ARF -->|generates| OF
+    end
+    
+    subgraph "Reverse Attribution<br/>(Credit Propagation)"
+        OR["Outcome"]
+        ARR["Artifact"]
+        AR1["Agent A"]
+        AR2["Agent B"]
+        
+        OR -->|credits| ARR
+        ARR -->|credits| AR1
+        ARR -->|credits| AR2
+    end
+    
+    subgraph "Hybrid Result"
+        H["H(v) = α×F(v) + (1-α)×R(v)"]
+    end
+    
+    OF -.->|"Forward Flow"| H
+    OR -.->|"Reverse Flow"| H
+    
+    style AF1 fill:#ffd54f
+    style AF2 fill:#ffd54f
+    style ARF fill:#f8bbd9
+    style OF fill:#a5d6a7
+    style AR1 fill:#ffd54f
+    style AR2 fill:#ffd54f
+    style ARR fill:#f8bbd9
+    style OR fill:#a5d6a7
+    style H fill:#e1f5fe
 ```
 
 ### Configuration reference (`Config`)
