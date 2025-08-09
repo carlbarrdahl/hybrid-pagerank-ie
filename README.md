@@ -116,6 +116,18 @@ bun run examples/grant.ts
 
 It prints the payout table and a Δ column vs. the “no grant” counterfactual, indicating how much of each agent’s payout is due to the grant edges.
 
+- Read the full explainer and see charts in [docs/grant.md](docs/grant.md).
+
+#### α sweep (structure vs. outcomes)
+
+Explore how the hybrid balance α shifts attribution between forward structure and reverse outcome credit. The script computes payouts at multiple α values.
+
+```bash
+bun run examples/alpha-sweep.ts
+```
+
+- Read the short explainer in [docs/alpha-sweep.md](docs/alpha-sweep.md).
+
 #### Sample output
 
 See the full dataset chart and output in `docs/oss.md`.
