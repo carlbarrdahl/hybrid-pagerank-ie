@@ -286,6 +286,16 @@ Artists produce designs or music (artifacts) that are downloaded, remixed, or pu
 - **Graph neural networks:** Explore machine‑learning techniques to learn attribution functions from data, potentially outperforming simple PageRank.
 - **Integration with hypercerts:** Use hypercert claims as measurement data and allocate hypercert fractions as rewards, enhancing interoperability with other impact funding systems[^3].
 
+### 6.4 Counterfactual analysis for attribution
+
+Counterfactuals clarify how specific measurement channels (e.g., grants) alter the reward distribution. In our evaluator, counterfactuals are straightforward to compute by modifying the graph or configuration and re-running the hybrid score:
+
+- Remove or down‑weight a subset of edges (e.g., `grant → *` edges) to estimate how payouts would change absent that value signal.
+- Sweep the hybrid balance \(\alpha\) to bound structural vs. outcome-driven attributions: \(\alpha=1\) uses pure forward structure; \(\alpha=0\) emphasizes outcomes entirely.
+- Adjust edge-type multipliers (e.g., dampen `depends`) to test sensitivity to assumptions about infrastructure leverage.
+
+The included script `examples/grant-5000.ts` demonstrates a $5,000 allocation and reports a counterfactual where the grant channel is removed, printing \(\Delta\) payouts per agent. This operationalizes “what if the grant had not occurred?” as a practical diagnostic for governance and auditability.
+
 ## 7 Conclusion
 
 We presented a graph‑based impact evaluator that implements the Generalized Impact Evaluator framework through a hybrid PageRank algorithm. By modeling agents, artifacts, and outcomes as nodes in a directed graph and tuning propagation weights via a configuration object, the evaluator offers a flexible, automated, and auditable method for attributing credit and distributing rewards. The model aligns with the GIE functions—*scope*, *measurement*, *evaluation*, and *reward*—and complements initiatives such as hypercerts and RetroPGF. Future work will refine weight selection, address gaming and measurement gaps, incorporate temporal dynamics, and integrate with decentralized attestation standards. Ultimately, such evaluators could form the backbone of open, permissionless ecosystems that incentivize high‑impact work for public and common goods.
