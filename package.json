@@ -1,0 +1,19 @@
+{
+  "name": "hybrid-pagerank-ie",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "graphology": "^0.26.0",
+    "graphology-metrics": "^2.4.0"
+  }
+}
