@@ -111,7 +111,7 @@ This prints sorted agent scores, a reward split, and a small α sweep.
 A focused script allocates a $5,000 pool and reports a counterfactual where the grant outcome is removed to show attribution via that channel.
 
 ```bash
-bun run examples/grant-5000.ts
+bun run examples/grant.ts
 ```
 
 It prints the payout table and a Δ column vs. the “no grant” counterfactual, indicating how much of each agent’s payout is due to the grant edges.
