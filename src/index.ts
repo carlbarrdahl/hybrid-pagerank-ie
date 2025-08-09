@@ -28,18 +28,6 @@ type Edge = {
 type Config = {
   alpha: number; // Forward/reverse balance [0,1]
   damping: number; // PageRank damping factor
-  normalization?: {
-    // How to normalize raw edge.weight values before applying multipliers
-    // none: use raw edge.weight
-    // perTypeSum: divide by sum of weights for each edge.type across the whole graph
-    // perSourceTypeSum: divide by sum of weights for each (edge.from, edge.type)
-    // perTypeMax: divide by max weight per edge.type
-    edgeWeight?: "none" | "perTypeSum" | "perSourceTypeSum" | "perTypeMax";
-    // Optional transformation applied to raw edge.weight before normalization
-    transform?: "none" | "log1p";
-    // Small constant to avoid division by zero
-    epsilon?: number;
-  };
   weights: {
     edges: {
       [edgeType: string]: number; // Multiplier per edge type
@@ -69,11 +57,6 @@ class AttributionEngine {
     const defaultConfig: Config = {
       alpha: 0.5,
       damping: 0.85,
-      normalization: {
-        edgeWeight: "perTypeSum",
-        transform: "none",
-        epsilon: 1e-12,
-      },
       weights: {
         edges: {},
         nodesByType: {
@@ -111,19 +94,11 @@ class AttributionEngine {
   evaluate(nodes: Node[], edges: Edge[]): Record<string, number> {
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
-    // Pre-compute normalized edge.weight values according to config
-    const normalizedEdgeValues = this.computeNormalizedEdgeValues(edges);
-
     // Build forward graph (for structural importance)
     const forwardGraph = this.buildGraph(nodes, edges);
 
     // Build reverse graph (for credit attribution from outcomes)
-    const reverseGraph = this.buildReverseGraph(
-      nodes,
-      edges,
-      nodeMap,
-      normalizedEdgeValues
-    );
+    const reverseGraph = this.buildReverseGraph(nodes, edges, nodeMap);
 
     // 1. Compute Forward PageRank (standard)
     const forwardScores = pagerank(forwardGraph, {
@@ -135,8 +110,7 @@ class AttributionEngine {
     const personalization = this.getOutcomePersonalization(
       nodes,
       edges,
-      nodeMap,
-      normalizedEdgeValues
+      nodeMap
     );
     const reverseOptions: PageRankOptions = {
       alpha: this.config.damping,
@@ -188,8 +162,7 @@ class AttributionEngine {
   private getOutcomePersonalization(
     nodes: Node[],
     edges: Edge[],
-    nodeMap: Map<string, Node>,
-    normalizedEdgeValues: number[]
+    nodeMap: Map<string, Node>
   ): Record<string, number> {
     const personalization: Record<string, number> = {};
     const outcomeNodes = nodes.filter((n) => n.type === "outcome");
@@ -198,14 +171,12 @@ class AttributionEngine {
       return {};
     }
 
-    for (let i = 0; i < edges.length; i++) {
-      const edge = edges[i]!;
+    for (const edge of edges) {
       const fromNode = nodeMap.get(edge.from);
       // Find edges that represent value generation from an outcome
       if (fromNode && fromNode.type === "outcome") {
-        const normalized = normalizedEdgeValues[i] ?? (edge.weight ?? 1.0);
         const base =
-          normalized *
+          (edge.weight ?? 1.0) *
           (edge.confidence ?? 1.0) *
           (this.config.weights.edges[edge.type] || 1.0);
         const seedWeight = base * this.nodeMultiplier(fromNode);
@@ -230,14 +201,11 @@ class AttributionEngine {
 
     const nodeMap = new Map(nodes.map((n) => [n.id, n]));
 
-    const normalizedEdgeValues = this.computeNormalizedEdgeValues(edges);
-
-    edges.forEach((edge, i) => {
+    edges.forEach((edge) => {
       const fromNode = nodeMap.get(edge.from);
       const toNode = nodeMap.get(edge.to);
-      const normalized = normalizedEdgeValues[i] ?? (edge.weight ?? 1.0);
       const baseWeight =
-        normalized *
+        (edge.weight ?? 1.0) *
         (edge.confidence ?? 1.0) *
         (this.config.weights.edges[edge.type] || 1.0);
       const weight =
@@ -252,18 +220,16 @@ class AttributionEngine {
   private buildReverseGraph(
     nodes: Node[],
     edges: Edge[],
-    nodeMap: Map<string, Node>,
-    normalizedEdgeValues: number[]
+    nodeMap: Map<string, Node>
   ): DirectedGraph {
     const graph = new Graph({ multi: true});
     nodes.forEach((node) => graph.addNode(node.id, { ...node }));
 
-    edges.forEach((edge, i) => {
+    edges.forEach((edge) => {
       const fromNode = nodeMap.get(edge.from);
       const toNode = nodeMap.get(edge.to);
-      const normalized = normalizedEdgeValues[i] ?? (edge.weight ?? 1.0);
       const baseWeight =
-        normalized *
+        (edge.weight ?? 1.0) *
         (edge.confidence ?? 1.0) *
         (this.config.weights.edges[edge.type] || 1.0);
       const weight =
@@ -281,62 +247,6 @@ class AttributionEngine {
     });
 
     return graph;
-  }
-
-  private computeNormalizedEdgeValues(edges: Edge[]): number[] {
-    const mode = this.config.normalization?.edgeWeight || "perTypeSum";
-    const transform = this.config.normalization?.transform || "none";
-    const epsilon = this.config.normalization?.epsilon ?? 1e-12;
-
-    // Prepare structures
-    const values = new Array<number>(edges.length);
-
-    // Pre-transform all raw weights
-    const rawVals = edges.map((e) => {
-      const w = e.weight ?? 1.0;
-      const wt = transform === "log1p" ? Math.log1p(Math.max(0, w)) : w;
-      return wt;
-    });
-
-    if (mode === "none") return rawVals;
-
-    if (mode === "perTypeSum" || mode === "perTypeMax") {
-      const byTypeSum = new Map<string, number>();
-      const byTypeMax = new Map<string, number>();
-      for (let i = 0; i < edges.length; i++) {
-        const t = edges[i]!.type;
-        const v = rawVals[i]!;
-        byTypeSum.set(t, (byTypeSum.get(t) || 0) + v);
-        byTypeMax.set(t, Math.max(byTypeMax.get(t) || 0, v));
-      }
-      for (let i = 0; i < edges.length; i++) {
-        const t = edges[i]!.type;
-        const denom =
-          mode === "perTypeSum"
-            ? (byTypeSum.get(t) || 0) + epsilon
-            : (byTypeMax.get(t) || 0) + epsilon;
-        values[i] = rawVals[i]! / denom;
-      }
-      return values;
-    }
-
-    if (mode === "perSourceTypeSum") {
-      const bySourceTypeSum = new Map<string, number>();
-      const keyOf = (e: Edge) => `${e.from}__${e.type}`;
-      for (let i = 0; i < edges.length; i++) {
-        const k = keyOf(edges[i]!);
-        bySourceTypeSum.set(k, (bySourceTypeSum.get(k) || 0) + rawVals[i]!);
-      }
-      for (let i = 0; i < edges.length; i++) {
-        const k = keyOf(edges[i]!);
-        const denom = (bySourceTypeSum.get(k) || 0) + epsilon;
-        values[i] = rawVals[i]! / denom;
-      }
-      return values;
-    }
-
-    // Fallback
-    return rawVals;
   }
 }
 
