@@ -17,34 +17,83 @@ bun install
 ### Quick start (TypeScript)
 
 ```ts
-import { AttributionEngine, type Node, type Edge, type Config } from './src/index.ts';
+import { AttributionEngine } from "../src";
+import type { Node, Edge, Config } from "../src";
 
 const nodes: Node[] = [
-  { id: 'alice', type: 'agent' },
-  { id: 'library', type: 'artifact' },
-  { id: 'downloads', type: 'outcome' }
+  { id: "alice", type: "agent" },
+  { id: "bob", type: "agent" },
+  { id: "library", type: "artifact" },
+  { id: "downloads", type: "outcome" },
 ];
 
 const edges: Edge[] = [
-  { from: 'alice', to: 'library', type: 'creates', weight: 1.0 },
-  { from: 'downloads', to: 'library', type: 'generates', weight: 10.0 }
+  { from: "alice", to: "library", type: "creates", weight: 1.0 },
+  { from: "bob", to: "library", type: "creates", weight: 0.5 },
+  { from: "downloads", to: "library", type: "generates", weight: 10.0 },
 ];
 
 const config: Partial<Config> = {
-  alpha: 0.5,        // blend forward vs. reverse (0..1)
-  damping: 0.85,     // PageRank damping
+  alpha: 0.5, // blend forward vs. reverse (0..1)
+  damping: 0.85, // PageRank damping
   weights: {
     edges: { creates: 1.0, depends: 1.0, generates: 1.0 },
-    nodesByType: { agent: 1.0, artifact: 1.0, outcome: 1.0 }
-  }
+    nodesByType: { agent: 1.0, artifact: 1.0, outcome: 1.0 },
+  },
 };
 
 const engine = new AttributionEngine(config);
-const scores = engine.evaluate(nodes, edges);      // agent → hybrid score
-const reward = engine.reward(scores, 1000);        // normalize to a pool
+const scores = engine.evaluate(nodes, edges);
+const reward = engine.reward(scores, 1000);
+```
 
-console.log(scores);
-console.log(reward);
+Example output (values may vary with configuration):
+
+```text
+Scores:
+alice  0.169954
+bob    0.123145
+
+Reward (pool=1000):
+alice  579.85
+bob    420.15
+
+```
+
+```mermaid
+flowchart LR
+  %% Subgraph: Agents and Contributions
+  subgraph Agents["Contributions"]
+    Alice["Alice<br/>(agent)"]
+    Bob["Bob<br/>(agent)"]
+  end
+
+  %% Subgraph: Outcomes and Value
+  subgraph Outcomes["Value & Impact"]
+    Downloads["Downloads<br/>(10.0)"]
+  end
+
+  %% Artifact
+  Library["Library"]
+
+  %% Forward flows (solid lines)
+  Alice -- "creates (1.0)" --> Library
+  Bob -- "creates (0.5)" --> Library
+  Downloads -- "generates (10.0)" --> Library
+
+  %% Reverse credit flows (dotted)
+  Library -.->|"$579.85 credits"| Alice
+  Library -.->|"$420.15 credits"| Bob
+
+  %% Styling
+  classDef agent fill:#e1f5fe,stroke:#01579b
+  classDef artifact fill:#f3e5f5,stroke:#4a148c
+  classDef outcome fill:#f1f8e9,stroke:#33691e
+  classDef subgraph_style fill:#fff,stroke:#999,stroke-width:2px
+
+  class Alice,Bob agent
+  class Library artifact
+  class Downloads outcome
 ```
 
 ### Run the included example
@@ -82,15 +131,15 @@ Irina (Infra/CI)             742.70
 Eric (DevRel)                668.88
 
 Alpha Sensitivity:
-Agent                       α=0       α=0.25    α=0.5     α=0.75    α=1       
+Agent                       α=0       α=0.25    α=0.5     α=0.75    α=1
 ------------------------------------------------------------------------------
-Dana (Frontend Dev)         0.089587  0.072532  0.055478  0.038423  0.021369  
-Alice (Core Maintainer)     0.024955  0.028599  0.032244  0.035888  0.039533  
-Carol (Researcher)          0.030946  0.028552  0.026157  0.023763  0.021369  
-Bob (Systems Engineer)      0.029715  0.027629  0.025542  0.023455  0.021369  
-Community Contributors      0.007361  0.010863  0.014365  0.017867  0.021369  
-Irina (Infra/CI)            0.002882  0.007504  0.012126  0.016747  0.021369  
-Eric (DevRel)               0.000000  0.005342  0.010684  0.016027  0.021369  
+Dana (Frontend Dev)         0.089587  0.072532  0.055478  0.038423  0.021369
+Alice (Core Maintainer)     0.024955  0.028599  0.032244  0.035888  0.039533
+Carol (Researcher)          0.030946  0.028552  0.026157  0.023763  0.021369
+Bob (Systems Engineer)      0.029715  0.027629  0.025542  0.023455  0.021369
+Community Contributors      0.007361  0.010863  0.014365  0.017867  0.021369
+Irina (Infra/CI)            0.002882  0.007504  0.012126  0.016747  0.021369
+Eric (DevRel)               0.000000  0.005342  0.010684  0.016027  0.021369
 ```
 
 Numbers will vary with config, weights, and α.
@@ -99,8 +148,8 @@ Numbers will vary with config, weights, and α.
 
 - Build a forward directed graph from `nodes` and `edges` with configurable multipliers.
 - Build a reverse graph that keeps edges originating from outcome nodes as-is, while reversing other edges to propagate credit upstream.
-- Run PageRank on both graphs; seed reverse pass with a personalization vector over outcome nodes derived from outcome→* edges (uniform if none).
-- Combine for each agent id: \( H(v) = \alpha\,F(v) + (1-\alpha)\,R(v) \).
+- Run PageRank on both graphs; seed reverse pass with a personalization vector over outcome nodes derived from outcome→\* edges (uniform if none).
+- Combine for each agent id: $H(v) = \alpha\,F(v) + (1-\alpha)\,R(v)$.
 
 See `paper.md` for background, rationale, and design choices.
 
@@ -122,30 +171,30 @@ graph LR
         AF2["Agent B"]
         ARF["Artifact"]
         OF["Outcome"]
-        
+
         AF1 -->|creates| ARF
         AF2 -->|contributes| ARF
         ARF -->|generates| OF
     end
-    
+
     subgraph "Reverse Attribution<br/>(Credit Propagation)"
         OR["Outcome"]
         ARR["Artifact"]
         AR1["Agent A"]
         AR2["Agent B"]
-        
+
         OR -->|credits| ARR
         ARR -->|credits| AR1
         ARR -->|credits| AR2
     end
-    
+
     subgraph "Hybrid Result"
         H["H(v) = α×F(v) + (1-α)×R(v)"]
     end
-    
+
     OF -.->|"Forward Flow"| H
     OR -.->|"Reverse Flow"| H
-    
+
     style AF1 fill:#ffd54f
     style AF2 fill:#ffd54f
     style ARF fill:#f8bbd9
