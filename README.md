@@ -281,6 +281,7 @@ graph LR
     style OR fill:#a5d6a7
     style H fill:#e1f5fe
 ```
+
 See the OSS example chart and payouts in `docs/oss.md`.
 
 ### Configuration reference (`Config`)
