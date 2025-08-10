@@ -1,4 +1,16 @@
-### Open-Source Dataset: Full Graph and Sample Output
+### Open-Source Dataset
+
+You’re allocating a $10,000 pool across contributors to an AI toolkit. You want a split that respects structural leverage (dependencies) and realized value (downloads, grants, awards).
+
+What you’ll do
+- Run the evaluator on the OSS presentation graph
+- Inspect the payout split and why it looks that way
+- Note what to tweak next (α, edge weights)
+
+Run it
+```bash
+bun run examples/oss.ts
+```
 
 Source: `examples/oss.ts`. This diagram shows all nodes and edges in the OSS presentation dataset and the payout amounts (pool = 10,000) as dotted lines from artifacts to their creators.
 

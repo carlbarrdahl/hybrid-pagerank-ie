@@ -1,9 +1,13 @@
-### $5,000 Grant Allocation: OSS Presentation Graph
+### Grant counterfactual
 
-Source: `examples/grant.ts`. This scenario allocates a $5,000 pool over the OSS presentation graph using the hybrid PageRank evaluator (α=0.55). It also reports a counterfactual where the grant outcome is removed to show how much of each agent's payout is attributable to the grant channel.
+A $200k grant landed for the core library and data pipeline. How much did that shift contributor payouts?
 
-Run:
+What you’ll do
+- Compute the baseline payouts (α=0.55)
+- Remove only the grant edges
+- Compare Δ to see attribution of the grant channel
 
+Run it
 ```bash
 bun run examples/grant.ts
 ```
@@ -140,9 +144,9 @@ Reward Split (pool=$5,000):
 | Irina (Infra/CI) | $371.35 |
 | Eric (DevRel) | $334.44 |
 
-### Counterfactual: No Grant outcome
+### Counterfactual: remove grant → recompute
 
-We remove only the grant edges (i.e., `grant → llm-core`, `grant → data-pipeline`) and recompute. The Δ below is the change vs. the baseline payouts above.
+Remove only the grant edges (i.e., `grant → llm-core`, `grant → data-pipeline`) and recompute. The Δ below is the change vs. the baseline payouts above.
 
 | Agent | Δ vs. baseline |
 |---|---:|
@@ -154,14 +158,14 @@ We remove only the grant edges (i.e., `grant → llm-core`, `grant → data-pipe
 | Community Contributors | +$60.53 |
 | Eric (DevRel) | +$8.86 |
 
-Interpretation:
+Takeaways
 
-- **Attribution of the grant channel**: Agents and artifacts connected to the funded items capture more credit in the baseline than in the counterfactual. The negative Δ for Carol indicates her payout is strongly supported by the grant-driven value path through research outputs and dependencies; positive Δ values indicate beneficiaries when the grant influence is removed.
+- **Attribution of the grant channel**: Agents/artifacts connected to funded items capture more credit in the baseline than in the counterfactual. Large negatives indicate reliance on the grant channel; positives indicate beneficiaries when grant influence is removed.
 - **Sensitivity levers**: Adjust α to emphasize structure (α→1) or outcomes (α→0), or change edge multipliers (e.g., down‑weight `depends`) to test assumptions about infrastructure leverage.
 
 ### Discussion
 
-- **Governance levers**: The grant allocation reflects value judgments encoded in α and edge-type multipliers. Communities can transparently tune these to match norms (e.g., emphasizing funding over social signals).
+- **Governance levers**: The grant allocation reflects value judgments encoded in α and edge-type multipliers. Tune these to match norms (e.g., emphasizing funding over social signals).
 - **Counterfactual insight**: Removing the grant channel highlights who is most dependent on funding signals versus organic structure and demand. This supports debates about channel reliability and gaming risk.
 - **Fairness and visibility**: Infrastructure contributors may be under‑credited without adequate `depends` weighting; DevRel may surface more if documentation and adoption outcomes are boosted.
 - **Limitations**: Results depend on measurement coverage and weight choices. Combine with qualitative review and robustness checks (α sweep, ablations) before payouts.
